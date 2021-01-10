@@ -306,8 +306,7 @@ ship_preprocess (ELEMENT *ElementPtr)
 		if ((!OBJECT_CLOAKED (ElementPtr)
 				&& LOBYTE (GLOBAL (CurrentActivity)) <=  IN_ENCOUNTER))
 		{
-			if (!(StarShipPtr && StarShipPtr->SpeciesID == SUPOX_ID))
-				spawn_ion_trail (ElementPtr);
+			spawn_ion_trail (ElementPtr);
 		}
 	}
 

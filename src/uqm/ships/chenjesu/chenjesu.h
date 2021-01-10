@@ -19,5 +19,7 @@
 
 RACE_DESC *init_chenjesu (void);
 
+void fragment_preprocess (ELEMENT *ElementPtr);
+
 #endif  /* CHENJESU_H */
 

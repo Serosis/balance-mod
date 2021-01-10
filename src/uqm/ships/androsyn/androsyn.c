@@ -21,7 +21,7 @@
 #include "resinst.h"
 #include "libs/mathlib.h"
 
-// Core characteristics
+// Core Characteristics
 #define MAX_CREW 20
 #define MAX_ENERGY 24
 #define ENERGY_REGENERATION 1
@@ -38,13 +38,13 @@
 #define ANDROSYNTH_OFFSET 14
 #define MISSILE_OFFSET 3
 #define MISSILE_SPEED 32
-#define MISSILE_LIFE 192
+#define MISSILE_LIFE 200
 #define MISSILE_HITS 3
 #define MISSILE_DAMAGE 2
 #define TRACK_WAIT 2
 
 // Blazer
-#define SPECIAL_ENERGY_COST 2
+#define SPECIAL_ENERGY_COST 3
 #define BLAZER_DEGENERATION (-1)
 #define BLAZER_ENERGY_WAIT 9
 #define SPECIAL_WAIT 0
@@ -140,7 +140,18 @@ blazer_collision (ELEMENT *ElementPtr0, POINT *pPt0, ELEMENT *ElementPtr1, POINT
 	old_life = ElementPtr0->life_span;
 	old_offs = ElementPtr0->blast_offset;
 	ElementPtr0->blast_offset = BLAZER_OFFSET;
-	ElementPtr0->mass_points = BLAZER_DAMAGE;
+	
+	// Slow the rate of damage inflicted by a blazer 'wedge'
+	if (StarShipPtr->auxiliary_counter > 0)
+		ElementPtr0->mass_points = 0;
+	else
+	{
+		ElementPtr0->mass_points = BLAZER_DAMAGE;
+
+		if (ElementPtr1->state_flags & PLAYER_SHIP)
+			StarShipPtr->auxiliary_counter = 2;
+	}
+
 	weapon_collision (ElementPtr0, pPt0, ElementPtr1, pPt1);
 	ElementPtr0->mass_points = BLAZER_MASS;
 	ElementPtr0->blast_offset = old_offs;
@@ -249,13 +260,13 @@ spawn_blazer_trail (ELEMENT *ElementPtr)
 
 	if (ElementPtr->state_flags & PLAYER_SHIP)
 	{
-		HELEMENT hIonElement;
+		HELEMENT hTrailElement;
 
-		hIonElement = AllocElement ();
-		if (hIonElement)
+		hTrailElement = AllocElement ();
+		if (hTrailElement)
 		{
 			HELEMENT hHeadElement;
-			ELEMENT *IonElementPtr, *HeadElementPtr;
+			ELEMENT *TrailElementPtr, *HeadElementPtr;
 			STARSHIP *StarShipPtr;
 
 			GetElementStarShip (ElementPtr, &StarShipPtr);
@@ -263,35 +274,35 @@ spawn_blazer_trail (ELEMENT *ElementPtr)
 			hHeadElement = GetHeadElement();
 			LockElement (hHeadElement, &HeadElementPtr);
 			if (HeadElementPtr == ElementPtr)
-				InsertElement (hIonElement, GetHeadElement ());
+				InsertElement (hTrailElement, GetHeadElement ());
 			else
-				InsertElement (hIonElement, GetPredElement (ElementPtr));
+				InsertElement (hTrailElement, GetPredElement (ElementPtr));
 			UnlockElement(hHeadElement);
 
-			LockElement (hIonElement, &IonElementPtr);
-			IonElementPtr->state_flags = APPEARING | FINITE_LIFE | NONSOLID;
-			IonElementPtr->life_span = IonElementPtr->thrust_wait = 1;
-			SetPrimType (&DisplayArray[IonElementPtr->PrimIndex], STAMPFILL_PRIM);
-			SetPrimColor (&DisplayArray[IonElementPtr->PrimIndex], START_BLAZER_COLOR);
-			IonElementPtr->current.image.frame = ElementPtr->current.image.frame;
-			IonElementPtr->current.image.farray = ElementPtr->current.image.farray;
-			IonElementPtr->current.location = ElementPtr->current.location;
-			IonElementPtr->death_func = spawn_blazer_trail;
-			IonElementPtr->turn_wait = 0;
+			LockElement (hTrailElement, &TrailElementPtr);
+			TrailElementPtr->state_flags = APPEARING | FINITE_LIFE | NONSOLID;
+			TrailElementPtr->life_span = TrailElementPtr->thrust_wait = 1;
+			SetPrimType (&DisplayArray[TrailElementPtr->PrimIndex], STAMPFILL_PRIM);
+			SetPrimColor (&DisplayArray[TrailElementPtr->PrimIndex], START_BLAZER_COLOR);
+			TrailElementPtr->current.image.frame = ElementPtr->current.image.frame;
+			TrailElementPtr->current.image.farray = ElementPtr->current.image.farray;
+			TrailElementPtr->current.location = ElementPtr->current.location;
+			TrailElementPtr->death_func = spawn_blazer_trail;
+			TrailElementPtr->turn_wait = 0;
 
-			SetElementStarShip (IonElementPtr, StarShipPtr);
+			SetElementStarShip (TrailElementPtr, StarShipPtr);
 
 			{
 				/* normally done during preprocess, but because
 				 * object is being inserted at head rather than
 				 * appended after tail it may never get preprocessed.
 				 */
-				IonElementPtr->next = IonElementPtr->current;
-				--IonElementPtr->life_span;
-				IonElementPtr->state_flags |= PRE_PROCESS;
+				TrailElementPtr->next = TrailElementPtr->current;
+				--TrailElementPtr->life_span;
+				TrailElementPtr->state_flags |= PRE_PROCESS;
 			}
 
-			UnlockElement (hIonElement);
+			UnlockElement (hTrailElement);
 		}
 	}
 	else
@@ -308,7 +319,7 @@ spawn_blazer_trail (ELEMENT *ElementPtr)
 		if (ElementPtr->turn_wait < colorTabCount)
 		{
 			ElementPtr->life_span = ElementPtr->thrust_wait;
-				// Reset the life span.
+				// Reset the life span
 			
 			++ElementPtr->turn_wait;
 			
@@ -351,6 +362,7 @@ androsynth_postprocess (ELEMENT *ElementPtr)
 				ElementPtr->mass_points = BLAZER_MASS;
 				StarShipPtr->RaceDescPtr->characteristics.turn_wait
 						= BLAZER_TURN_WAIT;
+				StarShipPtr->RaceDescPtr->ship_info.ship_flags |= IMMEDIATE_WEAPON;
 				/* Save the current collision func because we were not the
 				 * ones who set it */
 				StarShipPtr->RaceDescPtr->data = (intptr_t)
@@ -456,8 +468,9 @@ androsynth_preprocess (ELEMENT *ElementPtr)
 				spawn_blazer_trail(ElementPtr);
 			}
 		}
+
+		StarShipPtr->cur_status_flags = cur_status_flags;
 	}
-	StarShipPtr->cur_status_flags = cur_status_flags;
 }
 
 static void

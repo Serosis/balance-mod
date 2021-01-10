@@ -258,7 +258,7 @@ battleEndReadyNetwork (NetworkInputContext *context)
 }
 #endif
 
-// Returns true iff this side is ready to end the battle.
+// Returns true if this side is ready to end the battle.
 static inline bool
 readyForBattleEnd (void)
 {
@@ -297,6 +297,8 @@ cleanup_dead_ship (ELEMENT *DeadShipPtr)
 {
 	STARSHIP *DeadStarShipPtr;
 	BYTE MiscElemCount;
+									
+	FRAME frame;
 
 	MiscElemCount = 0;
 
@@ -382,8 +384,6 @@ cleanup_dead_ship (ELEMENT *DeadShipPtr)
 								if((LOBYTE (GLOBAL (CurrentActivity)) == SUPER_MELEE))
 								{
 									LockMutex (GraphicsLock);
-									
-									FRAME frame;
 									
 									frame = SetAbsFrameIndex (PickMeleeFrame, StarShipPtr->playerNr);
 									mark_retreated_ship (frame, StarShipPtr);
@@ -702,6 +702,7 @@ ship_death (ELEMENT *ShipPtr)
 	STARSHIP *VictoriousStarShipPtr;
 	HELEMENT hElement, hNextElement;
 	ELEMENT *ElementPtr;
+	PRIMITIVE *lpPrim;
 
 	StopDitty ();
 	StopMusic ();
@@ -720,7 +721,6 @@ ship_death (ELEMENT *ShipPtr)
 #ifdef DEBUG
 			fprintf(stderr, "fixing Ilwarth %d\n", StarShipPtr->SpeciesID);
 #endif
-			PRIMITIVE *lpPrim;
 			lpPrim = & (DisplayArray)[ShipPtr->PrimIndex];
 			SetPrimType(lpPrim, STAMP_PRIM);
 			SetPrimColor(lpPrim, BLACK_COLOR);
